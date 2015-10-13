@@ -3,7 +3,8 @@ class GraphQL::Query
   # The executor will send the field's name to the target object
   # and use the result.
   DEFAULT_RESOLVE = :__default_resolve
-  attr_reader :schema, :document, :context, :fragments, :variables, :operations, :debug
+  attr_reader :schema, :document, :context, :fragments, :raw_variables, :operations, :debug
+  attr_accessor :variables
 
   # Prepare query `query_string` on `schema`
   # @param schema [GraphQL::Schema]
@@ -18,7 +19,7 @@ class GraphQL::Query
     @debug = debug
     @context = Context.new(values: context)
 
-    @variables = variables
+    @raw_variables = variables
     @validate = validate
     @operation_name = operation_name
     @fragments = {}
@@ -57,3 +58,4 @@ require 'graphql/query/type_resolver'
 require 'graphql/query/directive_chain'
 require 'graphql/query/executor'
 require 'graphql/query/context'
+require 'graphql/query/literal'

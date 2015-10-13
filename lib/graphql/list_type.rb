@@ -16,4 +16,16 @@ class GraphQL::ListType < GraphQL::BaseType
   def to_s
     "[#{of_type.to_s}]"
   end
+
+  def valid_non_null_input?(value)
+    return true if value.nil?
+    list = value.is_a?(Array) ? value : [value]
+    list.all?{ |element| of_type.valid_input?(element) }
+  end
+
+  def coerce_non_null_input(value)
+    return nil if value.nil?
+    list = value.is_a?(Array) ? value : [value]
+    list.map{ |element| of_type.coerce_input(element) }
+  end
 end

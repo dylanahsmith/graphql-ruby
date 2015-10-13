@@ -38,6 +38,7 @@ module GraphQL
       def execute
         return {} if query.operations.none?
         operation = find_operation(operation_name, query.operations)
+        coerce_variables(operation, query)
         if operation.operation_type == "query"
           root_type = query.schema.query
           execution_strategy_class = query.schema.query_execution_strategy
@@ -65,6 +66,45 @@ module GraphQL
           raise OperationNameMissingError, operations.keys
         else
           operations[operation_name]
+        end
+      end
+
+      def coerce_variables(operation, query)
+        values = {}
+        operation.variables.each do |variable_definition|
+          name = variable_definition.name
+          raw_value = query.raw_variables[name]
+          values[name] = coerce_variable(variable_definition, raw_value)
+        end
+        query.variables = GraphQL::Query::Arguments.new(values)
+      end
+
+      def coerce_variable(variable_definition, input)
+        type = type_from_ast(variable_definition.type)
+
+        unless type.valid_input?(input)
+          exc = GraphQL::ExecutionError.new("Value #{JSON.dump(input)} for variable #{variable_definition.name} wasn't of type #{type}")
+          exc.ast_node = variable_definition
+          raise exc
+        end
+        if input.nil?
+          GraphQL::Query::Literal.to_value(variable_definition.default_value, type)
+        else
+          type.coerce_input(input)
+        end
+      end
+
+      WRAPPER_TYPES = {
+        GraphQL::Language::Nodes::NonNullType => GraphQL::NonNullType,
+        GraphQL::Language::Nodes::ListType => GraphQL::ListType,
+      }
+      private_constant :WRAPPER_TYPES
+
+      def type_from_ast(type_ast)
+        if wrapper_type = WRAPPER_TYPES[type_ast.class]
+          wrapper_type.new(of_type: type_from_ast(type_ast.of_type))
+        else
+          query.schema.types[type_ast.name]
         end
       end
     end

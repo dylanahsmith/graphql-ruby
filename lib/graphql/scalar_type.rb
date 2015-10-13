@@ -19,7 +19,11 @@ module GraphQL
       self.coerce_result = proc
     end
 
-    def coerce_input(value)
+    def valid_non_null_input?(value)
+      !coerce_non_null_input(value).nil?
+    end
+
+    def coerce_non_null_input(value)
       @coerce_input_proc.call(value)
     end
 
