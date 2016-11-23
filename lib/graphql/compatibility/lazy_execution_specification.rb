@@ -48,12 +48,12 @@ module GraphQL
             assert_equal expected_pushes, pushes
           end
 
-          def test_it_maintains_path
+          def test_it_maintains_path_on_execution_error
             query_str = %|
             {
               push(value: 2) {
                 push(value: 3) {
-                  fail1: push(value: 13) {
+                  fail1: push(value: 14) {
                     value
                   }
                   fail2: push(value: 14) {
@@ -65,9 +65,27 @@ module GraphQL
             |
             res = self.class.lazy_schema.execute(query_str, context: {pushes: []})
             assert_equal nil, res["data"]
-            assert_equal 2, res["errors"].length
+            assert_equal ["oops!", "oops!"], res["errors"].map { |err| err["message"] }
             assert_equal ["push", "push", "fail1", "value"], res["errors"][0]["path"]
             assert_equal ["push", "push", "fail2", "value"], res["errors"][1]["path"]
+          end
+
+          def test_it_raises_invalid_null_error
+            query_str = %|
+            {
+              push(value: 2) {
+                push(value: 3) {
+                  fail1: push(value: 13) {
+                    value
+                  }
+                }
+              }
+            }
+            |
+            error = assert_raises(GraphQL::InvalidNullError) do
+              self.class.lazy_schema.execute(query_str, context: {pushes: []})
+            end
+            assert_equal "Cannot return null for non-nullable field LazyPush.value", error.message
           end
 
           def test_it_resolves_mutation_values_eagerly

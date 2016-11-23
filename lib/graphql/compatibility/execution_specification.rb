@@ -81,13 +81,31 @@ module GraphQL
             assert_equal false, flh.key?("org_n"), "It doesn't apply other type fields"
           end
 
-          def test_it_propagates_nulls_to_field
+          def test_it_raises_invalid_null_errors
             query_string = %|
-            query getOrg($id: ID = "2001"){
+            query getorg($id: ID = "2001"){
+              node(id: $id) {
+                ... on Organization {
+                  name
+                  invalidNullLeader: leader { name }
+                }
+              }
+            }
+            |
+            err = assert_raises(GraphQL::InvalidNullError) do
+              execute_query(query_string)
+            end
+
+            assert_equal "Cannot return null for non-nullable field Organization.leader", err.message
+          end
+
+          def test_it_propagates_non_null_errors_to_nullable_field
+            query_string = %|
+            query getorg($id: ID = "2001"){
               failure: node(id: $id) {
                 ... on Organization {
                   name
-                  leader { name }
+                  nonNullError
                 }
               }
               success: node(id: $id) {
@@ -107,15 +125,13 @@ module GraphQL
             assert_equal 1, res["errors"].length , "It returns an error for the invalid null"
           end
 
-          def test_it_propages_nulls_to_operation
+          def test_it_propages_non_null_errors_to_operation
             query_string = %|
               {
                 foundOrg: organization(id: "2001") {
                   name
                 }
-                organization(id: "2999") {
-                  name
-                }
+                nonNullError
               }
             |
 
@@ -239,11 +255,7 @@ module GraphQL
               node(id: "1001") {
                 ... on Person {
                   name
-                  first_organization {
-                    leader {
-                      name
-                    }
-                  }
+                  nonNullError
                 }
               }
             }

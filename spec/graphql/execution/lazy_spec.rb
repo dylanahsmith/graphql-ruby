@@ -49,7 +49,7 @@ describe GraphQL::Execution::Lazy do
       argument :value, !types.Int
       resolve ->(o, args, c) {
         if args[:value] == 13
-          Wrapper.new(nil)
+          Wrapper.new { raise GraphQL::ExecutionError.new("13 is unlucky") }
         else
           SumAll.new(c, o + args[:value])
         end
@@ -148,7 +148,7 @@ describe GraphQL::Execution::Lazy do
       assert_equal expected_data, res["data"]
     end
 
-    it "propagates nulls" do
+    it "propagates nulls from field error on non-null field" do
       res = run_query %|
       {
         nestedSum(value: 1) {

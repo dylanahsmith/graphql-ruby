@@ -195,6 +195,10 @@ DeepNonNullType = GraphQL::ObjectType.define do
     resolve ->(obj, args, ctx) { args[:returning] }
   end
 
+  field :nonNullError, !types.Int do
+    resolve ->(obj, args, ctx) { raise GraphQL::ExecutionError, "error on non-null field" }
+  end
+
   field :deepNonNull, DeepNonNullType.to_non_null_type do
     resolve ->(obj, args, ctx) { :deepNonNull }
   end

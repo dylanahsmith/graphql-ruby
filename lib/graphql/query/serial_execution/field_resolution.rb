@@ -62,10 +62,10 @@ module GraphQL
               @field_ctx,
             )
           rescue GraphQL::InvalidNullError => err
+            raise unless err.parent_error?
             if field.type.kind.non_null?
               raise(err)
             else
-              err.parent_error? || @query.context.errors.push(err)
               nil
             end
           end

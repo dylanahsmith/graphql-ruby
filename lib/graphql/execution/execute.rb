@@ -122,8 +122,7 @@ module GraphQL
       def resolve_value(parent_type, field_defn, field_type, value, selection, field_ctx)
         if value.nil?
           if field_type.kind.non_null?
-            field_ctx.add_error(GraphQL::ExecutionError.new("Cannot return null for non-nullable field #{parent_type.name}.#{field_defn.name}"))
-            PROPAGATE_NULL
+            raise InvalidNullError.new(parent_type.name, field_defn.name, value)
           else
             nil
           end

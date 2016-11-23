@@ -1,15 +1,15 @@
 require "spec_helper"
 
 describe GraphQL::NonNullType do
-  describe "when a non-null field returns null" do
+  describe "when a non-null field raises an execution error" do
     it "nulls out the parent selection" do
-      query_string = %|{ cow { name cantBeNullButIs } }|
+      query_string = %|{ cow { name cantBeNullButRaisesExecutionError } }|
       result = DummySchema.execute(query_string)
       assert_equal({"cow" => nil }, result["data"])
       assert_equal([{
-        "message"=>"Cannot return null for non-nullable field Cow.cantBeNullButIs",
+        "message"=>"BOOM",
         "locations"=>[{"line"=>1, "column"=>14}],
-        "path"=>["cow", "cantBeNullButIs"],
+        "path"=>["cow", "cantBeNullButRaisesExecutionError"],
       }], result["errors"])
     end
 
@@ -21,7 +21,7 @@ describe GraphQL::NonNullType do
           nn2: deepNonNull {
             nni2: nonNullInt(returning: 2)
             nn3: deepNonNull {
-              nni3: nonNullInt
+              nni3: nonNullError
             }
           }
         }
@@ -30,10 +30,20 @@ describe GraphQL::NonNullType do
       result = DummySchema.execute(query_string)
       assert_equal(nil, result["data"])
       assert_equal([{
-        "message"=>"Cannot return null for non-nullable field DeepNonNull.nonNullInt",
+        "message"=>"error on non-null field",
         "locations"=>[{"line"=>8, "column"=>15}],
         "path"=>["nn1", "nn2", "nn3", "nni3"],
       }], result["errors"])
+    end
+  end
+
+  describe "when a non-null field returns null" do
+    it "raises an invalid null error" do
+      query_string = %|{ cow { name cantBeNullButIs } }|
+      err = assert_raises(GraphQL::InvalidNullError) do
+        DummySchema.execute(query_string)
+      end
+      assert_equal "Cannot return null for non-nullable field Cow.cantBeNullButIs", err.message
     end
   end
 end

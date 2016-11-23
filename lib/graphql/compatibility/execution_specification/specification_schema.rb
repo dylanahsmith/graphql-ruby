@@ -80,9 +80,9 @@ module GraphQL
                 obj.organization_ids.map { |id| DATA[id] }
               }
             end
-            field :first_organization, !organization_type do
-              resolve ->(obj, args, ctx) {
-                DATA[obj.organization_ids.first]
+            field :nonNullError, !types.String do
+              resolve ->(o, a, c) {
+                raise GraphQL::ExecutionError.new("Error on non-null person field")
               }
             end
           end
@@ -94,6 +94,11 @@ module GraphQL
             field :leader, !person_type do
               resolve ->(obj, args, ctx) {
                 DATA[obj.leader_id] || (ctx[:return_error] ? ExecutionError.new("Error on Nullable") : nil)
+              }
+            end
+            field :nonNullError, !types.String do
+              resolve ->(o, a, c) {
+                raise GraphQL::ExecutionError.new("Error on non-null field")
               }
             end
             field :returnedError, types.String do
